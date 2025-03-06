@@ -1,10 +1,13 @@
 #!/bin/bash
-#SBATCH --job-name=open-r1-g
-#SBATCH --nodes=2
+#SBATCH --job-name=open-r1-sft
+#SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 ######SBATCH --exclusive
-#SBATCH --gres=gpu:4
-#SBATCH --time=24:00:00
+######SBATCH --gres=gpu:1
+#SBATCH --gpus-per-node=4
+#SBATCH --cpus-per-task=16
+#SBATCH --mem=64G
+#SBATCH --time=2:00:00
 #SBATCH --partition=capella  # Adjust this for your cluster
 #SBATCH --output=./logs/%x-%j.out
 #SBATCH --err=./logs/%x-%j.err
@@ -14,8 +17,7 @@
 
 # Specific configuration optimized for the Hugging Face Compute Cluster
 # Be ye warned this may not work on other clusters!
-module load cuda/12.4
-
+module load release/24.04  GCCcore/13.2.0 Python/3.11.5 CUDA/12.4.0
 
 set -x -e
 
@@ -31,16 +33,10 @@ OPTIONAL_ARGS=$5
 
 # Training setup
 NUM_NODES=$SLURM_NNODES
-GPUS_PER_NODE=8
 WORLD_SIZE=$(($NUM_NODES*$GPUS_PER_NODE))
 # Due to conflicts between Accelerate's DeepSpeed configs and Transformers' TrainingArguments, we need to parse the gradient accumulation steps from the config file to ensure they match
 CONFIG_FILE=recipes/$MODEL/$TASK/config_$CONFIG_SUFFIX.yaml
 GRAD_ACC_STEPS=$(grep 'gradient_accumulation_steps' $CONFIG_FILE | awk '{print $2}')
-USE_VLLM=$(grep 'use_vllm:\s*true' $CONFIG_FILE) # Match "use_vllm: true" (with optional whitespace)
-
-if [ -n "$USE_VLLM" ]; then  # Check if USE_VLLM is *not* empty (found)
-    WORLD_SIZE=$(($WORLD_SIZE-1))
-fi
 
 # Split the string into individual arguments
 IFS=' ' read -ra ARGS <<< "$OPTIONAL_ARGS"
