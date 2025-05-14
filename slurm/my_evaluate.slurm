@@ -15,6 +15,7 @@
 module load release/24.04  GCCcore/13.2.0 Python/3.11.5 CUDA/12.4.0
 source env/openr1/bin/activate
 
+# sbatch my_evaluate.slurm my_task other_info some_model
 TASK_NAME=$1
 TASKS=$2
 MODEL_ID=$3
